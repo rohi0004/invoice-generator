@@ -110,6 +110,7 @@ details li {
 .delete-btn {
   padding: 10px 16px;
   margin-left: 15px;
+  margin-top: 2px;
   background-color: #dc3545;
   color: #fff;
   border: none;
