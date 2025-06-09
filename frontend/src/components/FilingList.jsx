@@ -41,7 +41,7 @@ const generatePDFReceipt = (filing) => {
     doc.setFillColor(208, 221, 255);
     doc.rect(20, yPos, colWidths.reduce((a, b) => a + b, 0), 10, 'F');
     doc.setTextColor(26, 115, 232);
-    doc.text(`Total: $${itemsTotal.toFixed(2)}`, 20 + colWidths.reduce((a, b) => a + b, 0) - 40, yPos + 7);
+    doc.text(`Total: ₹${itemsTotal.toFixed(2)}`, 20 + colWidths.reduce((a, b) => a + b, 0) - 40, yPos + 7);
     
     return yPos + 10;
   };
@@ -78,18 +78,18 @@ const generatePDFReceipt = (filing) => {
   doc.text("Items Details", 20, 95);
   doc.setFontSize(12);
   
-  const headers = ["Description", "Quantity", "Price", "Subtotal"];
+  const headers = ["Description", "Quantity", "Price (₹)", "Subtotal (₹)"];
   const rows = filing.items.map(item => [
-    item.description,
-    item.quantity,
-    `$${item.price}`,
-    `$${(item.quantity * item.price).toFixed(2)}`
-  ]);
+        item.description,
+        item.quantity,
+        `₹${item.price}`,
+        `₹${(item.quantity * item.price).toFixed(2)}`
+    ]);
   
   const finalY = createTable(headers, rows, 100);
   
   doc.setFont("helvetica", "bold");
-  doc.text(`Total Filing Value: $${filing.value}`, 20, finalY + 10);
+  doc.text(`Total Filing Value: ₹${filing.value}`, 20, finalY + 10);
   
   return doc;
 };
@@ -276,7 +276,7 @@ const FilingList = () => {
                 <h3>Shipment ID: {filing.shipment_id}</h3>
                 <p>Invoice No: {filing.invoice_no}</p>
                 <p>Port: {filing.port}</p>
-                <p>Value: ${filing.value}</p>
+                <p>Value: ₹{filing.value}</p>
                 <p>Status: {filing.status}</p>
                 <p>Submitted: {new Date(filing.submission_date).toLocaleString()}</p>
                 <details>
@@ -284,7 +284,7 @@ const FilingList = () => {
                   <ul>
                     {filing.items.map((item, idx) => (
                       <li key={idx}>
-                        {item.description} - Qty: {item.quantity} - Price: ${item.price}
+                        {item.description} - Qty: {item.quantity} - Price: ₹{item.price}
                       </li>
                     ))}
                   </ul>
