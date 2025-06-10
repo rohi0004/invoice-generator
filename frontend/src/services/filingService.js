@@ -6,3 +6,7 @@ export const getFilings = () => axios.get(`${API_URL}/api/filings`);
 export const createFiling = (data) => axios.post(`${API_URL}/api/filings`, data);
 export const updateFiling = (id, data) => axios.put(`${API_URL}/api/filings/${id}`, data);
 export const deleteFiling = (id) => axios.delete(`${API_URL}/api/filings/${id}`);
+
+// Send receipt via email or mobile
+export const sendReceipt = (id, type, value) =>
+  axios.post(`${API_URL}/api/filings/${id}/send-receipt`, { type, value });

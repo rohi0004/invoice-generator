@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createFiling } from '../services/filingService';
+import { QRCodeSVG } from 'qrcode.react';
 import '../styles/FilingForm.css';
 
 const FilingForm = () => {
@@ -239,8 +240,13 @@ const FilingForm = () => {
           </button>
         </fieldset>
 
-        <div className="items-total">
-          <strong>Total Items Value: ₹{calculateItemsTotal().toFixed(2)}</strong>
+        <div className="items-total" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+          <div style={{ minWidth: 100 }}></div> {/* Add left space before QR */}
+          <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 90, marginTop: 25 }}>
+            <div style={{ fontSize: 12, color: '#1a73e8', marginBottom: 2 }}>Pay via UPI</div>
+            <QRCodeSVG value={`upi://pay?pa=sahrohitkumar10@okicici&pn=Your+Business+Name&am=${calculateItemsTotal().toFixed(2)}&cu=INR&tn=Filing+Payment+for+${form.shipment_id}`} size={110} bgColor="#fff" fgColor="#1a73e8" />
+          </div>
+          <strong style={{ marginLeft: 'auto', textAlign: 'right', flex: 1 }}>Total Items Value: ₹{calculateItemsTotal().toFixed(2)}</strong>
         </div>
 
         <div className="form-actions">
@@ -266,8 +272,9 @@ const FilingForm = () => {
           <p><strong>Shipment ID:</strong> {form.shipment_id}</p>
           <p><strong>Invoice Number:</strong> {form.invoice_no}</p>
           <p><strong>Port:</strong> {form.port}</p>
-          <p><strong>Declared Value:</strong> ₹{form.value}</p>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            <p style={{ margin: 0 }}><strong>Declared Value:</strong> ₹{form.value}</p>
+          </div>
           <table className="invoice-items-table" aria-label="Invoice Items">
             <thead>
               <tr>
