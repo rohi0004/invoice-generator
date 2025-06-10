@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "jspdf": "^3.0.1",
+    "nodemailer": "^7.0.3",
+    "qrcode.react": "^4.2.0",
+    "twilio": "^5.7.0"
+  }
+}

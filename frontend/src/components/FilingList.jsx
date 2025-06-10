@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getFilings, updateFiling, deleteFiling } from '../services/filingService';
+import { getFilings, updateFiling, deleteFiling, sendReceipt } from '../services/filingService';
 import jsPDF from 'jspdf';
 import { FaPen } from 'react-icons/fa';
 import '../styles/FilingList.css';
@@ -41,7 +41,7 @@ const generatePDFReceipt = (filing) => {
     doc.setFillColor(208, 221, 255);
     doc.rect(20, yPos, colWidths.reduce((a, b) => a + b, 0), 10, 'F');
     doc.setTextColor(26, 115, 232);
-    doc.text(`Total: $${itemsTotal.toFixed(2)}`, 20 + colWidths.reduce((a, b) => a + b, 0) - 40, yPos + 7);
+    doc.text(`Total: ${itemsTotal.toFixed(2)}`, 20 + colWidths.reduce((a, b) => a + b, 0) - 40, yPos + 7);
     
     return yPos + 10;
   };
@@ -80,18 +80,87 @@ const generatePDFReceipt = (filing) => {
   
   const headers = ["Description", "Quantity", "Price", "Subtotal"];
   const rows = filing.items.map(item => [
-    item.description,
-    item.quantity,
-    `$${item.price}`,
-    `$${(item.quantity * item.price).toFixed(2)}`
-  ]);
+        item.description,
+        item.quantity,
+        `${item.price}`,
+        `${(item.quantity * item.price).toFixed(2)}`
+    ]);
   
   const finalY = createTable(headers, rows, 100);
   
   doc.setFont("helvetica", "bold");
-  doc.text(`Total Filing Value: $${filing.value}`, 20, finalY + 10);
+  doc.text(`Total Filing Value: ${filing.value}`, 20, finalY + 10);
   
   return doc;
+};
+
+const generateInvoiceEmailHTML = (filing) => {
+  const itemsRows = filing.items.map(item => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #e3eafc;">${item.description}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e3eafc;text-align:center;">${item.quantity}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e3eafc;text-align:right;">₹${item.price}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e3eafc;text-align:right;">₹${(item.quantity * item.price).toFixed(2)}</td>
+    </tr>
+  `).join('');
+  const itemsTotal = filing.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+
+  return `
+  <div style="font-family:Helvetica,Arial,sans-serif;background:#f4f7ff;padding:32px;">
+    <div style="max-width:600px;margin:auto;background:#fff;border-radius:12px;box-shadow:0 4px 32px rgba(26,115,232,0.08);border:1.5px solid #1a73e8;">
+      <div style="padding:32px;">
+        <h2 style="color:#1a73e8;text-align:center;margin-top:0;">CUSTOMS FILING RECEIPT</h2>
+        <hr style="border:0;border-top:1.5px solid #1a73e8;margin:16px 0;">
+        <table style="width:100%;margin-bottom:24px;">
+          <tr>
+            <td style="color:#1a73e8;font-weight:bold;">Filing Date:</td>
+            <td>${new Date(filing.submission_date).toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td style="color:#1a73e8;font-weight:bold;">Shipment ID:</td>
+            <td>${filing.shipment_id}</td>
+          </tr>
+          <tr>
+            <td style="color:#1a73e8;font-weight:bold;">Invoice No:</td>
+            <td>${filing.invoice_no}</td>
+          </tr>
+          <tr>
+            <td style="color:#1a73e8;font-weight:bold;">Port:</td>
+            <td>${filing.port}</td>
+          </tr>
+          <tr>
+            <td style="color:#1a73e8;font-weight:bold;">Status:</td>
+            <td>${filing.status}</td>
+          </tr>
+        </table>
+        <h3 style="color:#1a73e8;margin-bottom:8px;">Items Details</h3>
+        <table style="width:100%;border-collapse:collapse;background:#f4f7ff;">
+          <thead>
+            <tr style="background:#e3eaff;color:#1a73e8;">
+              <th style="padding:8px 12px;text-align:left;">Description</th>
+              <th style="padding:8px 12px;text-align:center;">Quantity</th>
+              <th style="padding:8px 12px;text-align:right;">Price</th>
+              <th style="padding:8px 12px;text-align:right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+            <tr style="background:#d0ddff;">
+              <td colspan="3" style="padding:8px 12px;text-align:right;color:#1a73e8;font-weight:bold;">Total:</td>
+              <td style="padding:8px 12px;text-align:right;color:#1a73e8;font-weight:bold;">₹${itemsTotal.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:24px;color:#1a73e8;font-weight:bold;font-size:16px;">
+          Total Filing Value: ₹${filing.value}
+        </div>
+        <div style="margin-top:32px;color:#888;text-align:center;font-size:13px;">
+          Thank you for your submission!
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
 };
 
 const FilingList = () => {
@@ -99,6 +168,12 @@ const FilingList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingFiling, setEditingFiling] = useState(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptFiling, setReceiptFiling] = useState(null);
+  const [receiptOption, setReceiptOption] = useState('email');
+  const [receiptValue, setReceiptValue] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
 
   const downloadReceipt = (filing) => {
     const doc = generatePDFReceipt(filing);
@@ -182,6 +257,38 @@ const FilingList = () => {
       } catch (err) {
         alert('Error deleting filing: ' + (err.response?.data?.message || err.message));
       }
+    }
+  };
+
+  const openReceiptModal = (filing) => {
+    setReceiptFiling(filing);
+    setShowReceiptModal(true);
+    setReceiptOption('email');
+    setReceiptValue('');
+    setSendResult(null);
+  };
+
+  const closeReceiptModal = () => {
+    setShowReceiptModal(false);
+    setReceiptFiling(null);
+    setReceiptValue('');
+    setSendResult(null);
+  };
+
+  const handleSendReceipt = async () => {
+    if (!receiptValue) {
+      setSendResult('Please enter a valid value.');
+      return;
+    }
+    setSending(true);
+    setSendResult(null);
+    try {
+      await sendReceipt(receiptFiling._id, receiptOption, receiptValue);
+      setSendResult('Receipt sent successfully!');
+    } catch (err) {
+      setSendResult('Failed to send: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setSending(false);
     }
   };
 
@@ -276,7 +383,7 @@ const FilingList = () => {
                 <h3>Shipment ID: {filing.shipment_id}</h3>
                 <p>Invoice No: {filing.invoice_no}</p>
                 <p>Port: {filing.port}</p>
-                <p>Value: ${filing.value}</p>
+                <p>Value: ₹{filing.value}</p>
                 <p>Status: {filing.status}</p>
                 <p>Submitted: {new Date(filing.submission_date).toLocaleString()}</p>
                 <details>
@@ -284,7 +391,7 @@ const FilingList = () => {
                   <ul>
                     {filing.items.map((item, idx) => (
                       <li key={idx}>
-                        {item.description} - Qty: {item.quantity} - Price: ${item.price}
+                        {item.description} - Qty: {item.quantity} - Price: ₹{item.price}
                       </li>
                     ))}
                   </ul>
@@ -295,6 +402,13 @@ const FilingList = () => {
                     onClick={() => downloadReceipt(filing)}
                   >
                     Download PDF Receipt
+                  </button>
+                  <button
+                    className="download-btn"
+                    style={{ marginLeft: 10 }}
+                    onClick={() => openReceiptModal(filing)}
+                  >
+                    Send Receipt
                   </button>
                   <button
                     className="delete-btn"
@@ -308,6 +422,127 @@ const FilingList = () => {
           </li>
         ))}
       </ul>
+      {/* Modal for sending receipt */}
+      {showReceiptModal && (
+        <div className="modal-overlay" onClick={closeReceiptModal} style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(26, 115, 232, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div
+            className="modal-content"
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#f4f7ff',
+              borderRadius: 12,
+              boxShadow: '0 4px 32px rgba(26,115,232,0.18)',
+              padding: 32,
+              minWidth: 340,
+              maxWidth: 400,
+              position: 'relative',
+              border: '1.5px solid #1a73e8',
+              color: '#1a73e8',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+            }}
+          >
+            <button
+              className="modal-close-btn"
+              onClick={closeReceiptModal}
+              aria-label="Close"
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 15,
+                background: 'none',
+                border: 'none',
+                fontSize: 24,
+                cursor: 'pointer',
+                color: '#1a73e8',
+              }}
+            >
+              ×
+            </button>
+            <h3 style={{ marginBottom: 18, color: '#1a73e8', textAlign: 'center' }}>Send Receipt</h3>
+            <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', gap: 24 }}>
+              <label style={{ color: '#1a73e8', fontWeight: 500 }}>
+                <input
+                  type="radio"
+                  name="receiptOption"
+                  value="email"
+                  checked={receiptOption === 'email'}
+                  onChange={() => setReceiptOption('email')}
+                  style={{ marginRight: 6 }}
+                />
+                Email
+              </label>
+              <label style={{ color: '#1a73e8', fontWeight: 500 }}>
+                <input
+                  type="radio"
+                  name="receiptOption"
+                  value="mobile"
+                  checked={receiptOption === 'mobile'}
+                  onChange={() => setReceiptOption('mobile')}
+                  style={{ marginRight: 6 }}
+                />
+                Mobile (SMS)
+              </label>
+            </div>
+            <input
+              type={receiptOption === 'email' ? 'email' : 'tel'}
+              placeholder={receiptOption === 'email' ? 'Enter email address' : 'Enter mobile number'}
+              value={receiptValue}
+              onChange={e => setReceiptValue(e.target.value)}
+              style={{
+                width: '100%',
+                marginBottom: 18,
+                padding: 10,
+                borderRadius: 6,
+                border: '1px solid #b6c7e6',
+                fontSize: 16,
+                color: '#1a73e8',
+                background: '#fff',
+                outline: 'none',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+              <button onClick={handleSendReceipt} disabled={sending} className="download-btn" style={{
+                background: '#1a73e8',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                padding: '8px 18px',
+                fontWeight: 600,
+                fontSize: 15,
+                cursor: sending ? 'not-allowed' : 'pointer',
+                opacity: sending ? 0.7 : 1,
+                transition: 'opacity 0.2s',
+              }}>
+                {sending ? 'Sending...' : 'Send Receipt'}
+              </button>
+              <button onClick={closeReceiptModal} className="cancel-btn" style={{
+                background: '#fff',
+                color: '#1a73e8',
+                border: '1px solid #b6c7e6',
+                borderRadius: 6,
+                padding: '8px 18px',
+                fontWeight: 600,
+                fontSize: 15,
+                cursor: 'pointer',
+              }}>Cancel</button>
+            </div>
+            {sendResult && <div style={{ marginTop: 16, color: sendResult.includes('success') ? '#188038' : '#d93025', textAlign: 'center', fontWeight: 500 }}>{sendResult}</div>}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
