@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createFiling } from '../services/filingService';
+import axios from 'axios';
+import { QRCodeSVG } from 'qrcode.react';
 import '../styles/FilingForm.css';
 
 const FilingForm = () => {
@@ -114,6 +116,27 @@ const FilingForm = () => {
       setShowInvoice(true);
     } else {
       setShowInvoice(false);
+    }
+  };
+
+  // Stripe payment handler
+  const handleStripePayment = async () => {
+    const amount = calculateItemsTotal();
+    if (!amount || amount <= 0) {
+      alert('Total amount must be greater than 0 to pay.');
+      return;
+    }
+    try {
+      const response = await axios.post(`${process.env.REACT_APP_API_URL}/api/filings/create-stripe-session`, {
+        amount: Math.round(amount * 100), // Stripe expects amount in cents/paise
+        shipment_id: form.shipment_id,
+        description: `Payment for Shipment ${form.shipment_id}`
+      });
+      const { sessionId, publicKey } = response.data;
+      const stripe = window.Stripe(publicKey);
+      await stripe.redirectToCheckout({ sessionId });
+    } catch (err) {
+      alert('Failed to initiate payment: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -239,8 +262,21 @@ const FilingForm = () => {
           </button>
         </fieldset>
 
-        <div className="items-total">
-          <strong>Total Items Value: ₹{calculateItemsTotal().toFixed(2)}</strong>
+        <div className="items-total" style={{ display: 'flex', alignItems: 'flex-start', gap: 24, marginBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 100 }}>
+            <QRCodeSVG value={`upi://pay?pa=sahrohitkumar10@okicici&pn=Neximp&am=${calculateItemsTotal().toFixed(2)}&cu=INR&tn=Filing+Payment+for+${form.shipment_id}`} size={90} bgColor="#fff" fgColor="#635bff" />
+            <button
+              type="button"
+              style={{ marginTop: 16, background: '#635bff', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer', width: 120 }}
+              onClick={handleStripePayment}
+              disabled={submitting || calculateItemsTotal() <= 0}
+            >
+              Pay with Stripe
+            </button>
+          </div>
+          <div style={{ marginLeft: 'auto', alignSelf: 'center', fontWeight: 700, fontSize: '1.2rem', color: '#1a73e8' }}>
+            Total Items Value: ₹{calculateItemsTotal().toFixed(2)}
+          </div>
         </div>
 
         <div className="form-actions">
@@ -303,3 +339,7 @@ const FilingForm = () => {
 };
 
 export default FilingForm;
+
+/* NOTE: To enable Stripe, add this to your public/index.html before </body>:
+<script src="https://js.stripe.com/v3/"></script>
+*/

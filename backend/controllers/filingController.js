@@ -2,6 +2,8 @@ import Filing from '../models/Filing.js';
 import nodemailer from 'nodemailer';
 import { Readable } from 'stream';
 import QRCode from 'qrcode';
+import crypto from 'crypto';
+import Stripe from 'stripe';
 
 export const createFiling = async (req, res) => {
   try {
@@ -276,6 +278,50 @@ export const downloadReceipt = async (req, res) => {
       'Content-Disposition': `attachment; filename=filing-receipt-${filing.shipment_id}.pdf`,
     });
     res.send(Buffer.from(pdfBuffer));
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const verifyPayment = async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+  const secret = process.env.RAZORPAY_SECRET;
+  if (!secret) return res.status(500).json({ success: false, message: 'Razorpay secret not set in backend .env' });
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(razorpay_order_id + '|' + razorpay_payment_id);
+  const generated_signature = hmac.digest('hex');
+  if (generated_signature === razorpay_signature) {
+    // Optionally update filing/payment status in DB here
+    return res.json({ success: true });
+  } else {
+    return res.status(400).json({ success: false, message: 'Invalid signature' });
+  }
+};
+
+export const createStripeSession = async (req, res) => {
+  try {
+    const { amount, shipment_id, description } = req.body;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'inr',
+            product_data: {
+              name: `Shipment ${shipment_id}`,
+              description: description || '',
+            },
+            unit_amount: amount,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/?payment=success`,
+      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/?payment=cancel`,
+    });
+    res.json({ sessionId: session.id, publicKey: process.env.STRIPE_PUBLIC_KEY });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

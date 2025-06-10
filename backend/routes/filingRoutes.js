@@ -6,7 +6,9 @@ import {
   updateFiling,
   deleteFiling,
   sendReceipt,
-  downloadReceipt
+  downloadReceipt,
+  verifyPayment,
+  createStripeSession
 } from '../controllers/filingController.js';
 
 const router = express.Router();
@@ -45,5 +47,15 @@ router.post('/:id/send-receipt', sendReceipt);
 // @route   GET /api/filings/:id/download-receipt
 // @access  Public
 router.get('/:id/download-receipt', downloadReceipt);
+
+// @desc    Verify Razorpay payment
+// @route   POST /api/filings/verify-payment
+// @access  Public
+router.post('/verify-payment', verifyPayment);
+
+// @desc    Create Stripe Checkout session
+// @route   POST /api/filings/create-stripe-session
+// @access  Public
+router.post('/create-stripe-session', createStripeSession);
 
 export default router;
