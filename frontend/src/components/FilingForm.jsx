@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { createFiling } from '../services/filingService';
-import { QRCodeSVG } from 'qrcode.react';
 import '../styles/FilingForm.css';
 
 const FilingForm = () => {
@@ -240,57 +239,9 @@ const FilingForm = () => {
           </button>
         </fieldset>
 
-       <div
-  className="items-total"
-  style={{
-    display: 'flex',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 24,
-    justifyContent: 'space-between',
-    marginTop: 20,
-  }}
->
-  {/* Left space before QR */}
-  <div style={{ minWidth: 100, flexBasis: '100%', height: 0 }}></div>
-
-  {/* QR Code Section */}
-  <div
-    style={{
-      textAlign: 'left',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      minWidth: 90,
-      marginTop: 25,
-      flex: '1 1 250px',
-    }}
-  >
-    <div style={{ fontSize: 12, color: '#1a73e8', marginBottom: 2 }}>
-      Pay via UPI
-    </div>
-    <QRCodeSVG
-      value={`upi://pay?pa=sahrohitkumar10@okicici&pn=Your+Business+Name&am=${calculateItemsTotal().toFixed(
-        2
-      )}&cu=INR&tn=Filing+Payment+for+${form.shipment_id}`}
-      size={110}
-      bgColor="#fff"
-      fgColor="#1a73e8"
-    />
-  </div>
-
-  {/* Total Items */}
-  <strong
-    style={{
-      textAlign: 'right',
-      flex: '1 1 200px',
-      marginTop: 20,
-    }}
-  >
-    Total Items Value: ₹{calculateItemsTotal().toFixed(2)}
-  </strong>
-</div>
-
+        <div className="items-total">
+          <strong>Total Items Value: ₹{calculateItemsTotal().toFixed(2)}</strong>
+        </div>
 
         <div className="form-actions">
           <button
@@ -315,9 +266,8 @@ const FilingForm = () => {
           <p><strong>Shipment ID:</strong> {form.shipment_id}</p>
           <p><strong>Invoice Number:</strong> {form.invoice_no}</p>
           <p><strong>Port:</strong> {form.port}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-            <p style={{ margin: 0 }}><strong>Declared Value:</strong> ₹{form.value}</p>
-          </div>
+          <p><strong>Declared Value:</strong> ₹{form.value}</p>
+
           <table className="invoice-items-table" aria-label="Invoice Items">
             <thead>
               <tr>
