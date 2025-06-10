@@ -240,14 +240,57 @@ const FilingForm = () => {
           </button>
         </fieldset>
 
-        <div className="items-total" style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-          <div style={{ minWidth: 100 }}></div> {/* Add left space before QR */}
-          <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', minWidth: 90, marginTop: 25 }}>
-            <div style={{ fontSize: 12, color: '#1a73e8', marginBottom: 2 }}>Pay via UPI</div>
-            <QRCodeSVG value={`upi://pay?pa=sahrohitkumar10@okicici&pn=Your+Business+Name&am=${calculateItemsTotal().toFixed(2)}&cu=INR&tn=Filing+Payment+for+${form.shipment_id}`} size={110} bgColor="#fff" fgColor="#1a73e8" />
-          </div>
-          <strong style={{ marginLeft: 'auto', textAlign: 'right', flex: 1 }}>Total Items Value: ₹{calculateItemsTotal().toFixed(2)}</strong>
-        </div>
+       <div
+  className="items-total"
+  style={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 24,
+    justifyContent: 'space-between',
+    marginTop: 20,
+  }}
+>
+  {/* Left space before QR */}
+  <div style={{ minWidth: 100, flexBasis: '100%', height: 0 }}></div>
+
+  {/* QR Code Section */}
+  <div
+    style={{
+      textAlign: 'left',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      minWidth: 90,
+      marginTop: 25,
+      flex: '1 1 250px',
+    }}
+  >
+    <div style={{ fontSize: 12, color: '#1a73e8', marginBottom: 2 }}>
+      Pay via UPI
+    </div>
+    <QRCodeSVG
+      value={`upi://pay?pa=sahrohitkumar10@okicici&pn=Your+Business+Name&am=${calculateItemsTotal().toFixed(
+        2
+      )}&cu=INR&tn=Filing+Payment+for+${form.shipment_id}`}
+      size={110}
+      bgColor="#fff"
+      fgColor="#1a73e8"
+    />
+  </div>
+
+  {/* Total Items */}
+  <strong
+    style={{
+      textAlign: 'right',
+      flex: '1 1 200px',
+      marginTop: 20,
+    }}
+  >
+    Total Items Value: ₹{calculateItemsTotal().toFixed(2)}
+  </strong>
+</div>
+
 
         <div className="form-actions">
           <button
